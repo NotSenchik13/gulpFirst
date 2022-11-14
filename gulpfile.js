@@ -14,25 +14,33 @@ const htmlmin = require('gulp-htmlmin')
 const size = require('gulp-size')
 const newer = require('gulp-newer')
 const browsersync = require('browser-sync').create()
-
+const gulppug = require('gulp-pug')
+const stylus = require('gulp-stylus')
+const sass = require('gulp-sass')(require('sass'))
+const ts = require('gulp-typescript') 
+const coffee = require('gulp-coffee')
 
 // Пути к изначальным файлам и файлам назначения
 const paths = {
+    pug: {
+        src: 'src/*.pug',
+        dest: 'dist/'
+    },
     html: {
         src: 'src/*.html',
-        dest: 'dist'
+        dest: 'dist/'
     },
     styles: {
-        src: 'src/styles/**/*.less',
+        src: ['src/styles/**/*.sass', 'src/styles/**/*.scss', 'src/styles/**/*.styl', 'src/styles/**/*.less'],
         dest: 'dist/css/'
     },
     scripts: {
-        src: 'src/scripts/**/*.js',
+        src: ['src/scripts/**/*.coffee', 'src/scripts/**/*.ts', 'src/scripts/**/*.js'],
         dest: 'dist/js/'
     },
     images: {
         src: 'src/img/**',
-        dest: 'dist/img'
+        dest: 'dist/img/'
     }
 }
 
@@ -53,11 +61,25 @@ function html() {
         .pipe(browsersync.stream())
 }
 
+// Задача для обработки PUG файлов
+function pug() {
+    return gulp.src(paths.pug.src)
+        .pipe(gulppug())
+        .pipe(size({
+            showFiles: true
+        }))
+        .pipe(gulp.dest(paths.pug.dest))
+        .pipe(browsersync.stream())
+}
+
+
 // Задача для обработки стилей
 function styles() {
     return gulp.src(paths.styles.src)   
         .pipe(sourcemaps.init())     
-        .pipe(less())
+        // .pipe(less())
+        //.pipe(stylus())
+        .pipe(sass().on('error', sass.logError))
         .pipe(autoprefixer({
             cascade: false
         }))
@@ -79,7 +101,14 @@ function styles() {
 // Задача для обработки скриптов
 function scripts() {
     return gulp.src(paths.scripts.src)
-        .pipe(sourcemaps.init()) 
+        .pipe(sourcemaps.init())
+        .pipe(coffee({bare: true}))
+        /*
+        .pipe(ts({
+            noImplicitAny: true,
+            outFile: 'main.min.js'
+        }))
+        */ 
         .pipe(babel({
             presets: ['@babel/env']
         }))
@@ -120,8 +149,11 @@ function watch() {
     gulp.watch(paths.images.src, img)
 }
 
-// Задача для порядка выполнения сборки 
+
+// Задача для порядка выполнения сборки     
 const build = gulp.series(clean, html, gulp.parallel(styles, scripts, img), watch)
+
+
 
 // Экспорт задач
 exports.clean = clean
@@ -132,3 +164,6 @@ exports.build = build
 exports.default = build
 exports.img = img
 exports.html = html
+exports.pug = pug
+
+
